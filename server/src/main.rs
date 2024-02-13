@@ -24,12 +24,16 @@ async fn index() -> impl Responder {
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
+    let app_address = match std::env::var("APP_ENVIRONMENT") {
+        Ok(value) if value == "production" => "0.0.0.0",
+        _ => "127.0.0.1",
+    };
     HttpServer::new(|| {
         App::new()
             .route("/echo_user_input", web::post().to(echo_user_input))
             .route("/", web::get().to(index))
     })
-    .bind(("127.0.0.1", 8080))?
+    .bind((app_address, 8080))?
     .run()
     .await
 }

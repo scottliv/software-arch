@@ -3,16 +3,17 @@ WORKDIR /app
 
 FROM chef AS planner
 COPY . .
-RUN cargo chef prepare --bin server
+RUN cargo chef prepare
 
 FROM chef AS builder
 COPY --from=planner /app/recipe.json .
-RUN cargo chef cook --release --bin server
+RUN cargo chef cook --release
 COPY . .
 RUN cargo build --release
-RUN mv ./target/release/server ./app
 
-FROM debian:stable-slim AS runtime
+FROM debian:stable-slim AS rust-server
 WORKDIR /app
-COPY --from=builder /app/app /usr/local/bin/
-ENTRYPOINT ["/usr/local/bin/app"]
+COPY --from=builder /app/target/release/server /server
+ENV APP_ENVIRONMENT production
+CMD ["/server"]
+LABEL service=rust-server

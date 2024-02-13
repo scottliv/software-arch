@@ -1,0 +1,30 @@
+# Configures the default task to run
+[tasks.default]
+alias = "build-containers"
+
+# Overrides the default build task
+[tasks.build]
+alias = "build-containers"
+
+[tasks.build-server]
+workspace = false
+script = '''
+docker build --rm --target rust-server .
+docker tag $(docker image ls -q --filter=label=service=rust-server) software-arch/rust-server
+'''
+
+[tasks.build-containers]
+workspace = false
+dependencies = ["build-server"]
+
+[tasks.push-containers]
+workspace = false
+script = '''
+echo "Implementing docker push is left as an exercise for the reader."
+'''
+
+[tasks.delete-containers]
+workspace = false
+script = '''
+docker image rm $(docker image ls -q --filter=label=service=rust-server)
+'''
