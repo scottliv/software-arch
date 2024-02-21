@@ -10,7 +10,7 @@ alias = "build-containers"
 workspace = false
 script = '''
 docker build --rm --target rust-server .
-docker tag $(docker image ls -q --filter=label=service=rust-server) software-arch/rust-server
+docker tag $(docker image ls -q --filter=label=service=rust-server) scottliv/rust-server
 '''
 
 [tasks.build-containers]
