@@ -1,6 +1,17 @@
 version: '3'
 
 services:
+  db:
+    container_name: rust-software-arch-db
+    image: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: rust-software-arch
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_dev:/var/lib/postgresql/data
   rust-server:
     image: scottliv/rust-server:latest
     container_name: rust-server
@@ -9,3 +20,6 @@ services:
       - "80:8080"
     environment:
       APP_ENVIRONMENT: production
+      
+volumes:
+        postgres_dev:
