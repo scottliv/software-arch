@@ -20,7 +20,7 @@ dependencies = ["build-server"]
 [tasks.push-containers]
 workspace = false
 script = '''
-echo "Implementing docker push is left as an exercise for the reader."
+echo "Not implemented yet."
 '''
 
 [tasks.delete-containers]

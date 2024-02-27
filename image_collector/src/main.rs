@@ -36,6 +36,7 @@ async fn insert_image(db: DatabaseConnection, image: UnsplashImage) -> anyhow::R
     };
 
     inspiration_image.insert(&db).await?;
+    println!("Saved image");
     Ok(())
 }
 
@@ -51,4 +52,22 @@ async fn main() -> anyhow::Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use database::get_connection;
+    use testcontainers::{clients, images};
+
+    #[tokio::test]
+    async fn test_insert_image() {
+        let docker = clients::Cli::default();
+        let database = images::postgres::Postgres::default();
+        let node = docker.run(database);
+        let connection_string = &format!(
+            "postgres://postgres:postgres@127.0.0.1:{}/postgres",
+            node.get_host_port_ipv4(5432)
+        );
+        let database_connection = get_connection(connection_string).await.unwrap();
+    }
 }

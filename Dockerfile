@@ -17,3 +17,10 @@ COPY --from=builder /app/target/release/server /server
 ENV APP_ENVIRONMENT production
 CMD ["/server"]
 LABEL service=rust-server
+
+FROM debian:stable-slim AS image_collector
+WORKDIR /app
+COPY --from=builder /app/target/release/image_collector /image_collector
+ENV APP_ENVIRONMENT production
+CMD ["/image_collector"]
+LABEL service=image_collector
