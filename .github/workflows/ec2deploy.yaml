@@ -61,14 +61,14 @@ jobs:
         run: |
           echo "${{ env.AWS_PRIVATE_KEY }}" > key.pem
           chmod 600 key.pem
-      -name: Copy docker compose
+      - name: Copy docker compose
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ubuntu@54.173.53.194
           key: key.pem
           source: "docker-compose.yml"
           target: /
-          overwrite: true 
+          overwrite: true
       - name: Pull Docker image
         run: |
           ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@54.173.53.194 'sudo docker pull scottliv/rust-server:latest'
