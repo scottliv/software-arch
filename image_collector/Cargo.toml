@@ -9,6 +9,7 @@ edition = "2021"
 database = { path = "../database/" }
 anyhow = { workspace = true }
 tokio = { workspace = true }
+tokio-cron-scheduler = "0.10.0"
 reqwest = { workspace = true }
 serde = { workspace = true }
 sea-orm = { workspace = true }

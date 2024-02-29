@@ -65,7 +65,7 @@ jobs:
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ubuntu@54.173.53.194
-          key: key.pem
+          key: ${{ env.AWS_PRIVATE_KEY }}
           source: "docker-compose.yml"
           target: /
           overwrite: true
