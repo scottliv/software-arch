@@ -12,7 +12,7 @@ jobs:
     name: test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3 
+      - uses: actions/checkout@v3
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - name: Run tests
@@ -30,13 +30,22 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Build and push Docker image
+      - name: Build and push Server Docker image
         uses: docker/build-push-action@v2
         with:
           context: ./
           push: true
           dockerfile: ./Dockerfile
+          target: rust-server
           tags: scottliv/rust-server:latest
+      - name: Build and push Image Collector Docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: ./
+          push: true
+          dockerfile: ./Dockerfile
+          target: image_collector
+          tags: scottliv/image_collector:latest
   deploy:
     needs: [test, build]
     runs-on: ubuntu-latest
@@ -52,13 +61,22 @@ jobs:
         run: |
           echo "${{ env.AWS_PRIVATE_KEY }}" > key.pem
           chmod 600 key.pem
+      -name: Copy docker compose
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ubuntu@54.173.53.194
+          key: key.pem
+          source: "docker-compose.yml"
+          target: /
+          overwrite: true 
       - name: Pull Docker image
         run: |
           ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@54.173.53.194 'sudo docker pull scottliv/rust-server:latest'
+          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@54.173.53.194 'sudo docker pull scottliv/image_collector:latest'
       - name: Stop running container
         run: |
           ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@54.173.53.194 'sudo docker stop rust-server || true'
           ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@54.173.53.194 'sudo docker rm rust-server || true'
       - name: Run new container
         run: |
-          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@54.173.53.194 'sudo docker run -d --name rust-server -p 80:8080 scottliv/rust-server:latest'
+          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@54.173.53.194 'sudo docker compose up'

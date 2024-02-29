@@ -12,6 +12,12 @@ services:
       - "5433:5432"
     volumes:
       - postgres_dev:/var/lib/postgresql/data
+  migrate:
+    depends_on: [db]
+    container_name: migration
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/rust-software-arch
+    image: scottliv/migration:latest
   rust-server:
     image: scottliv/rust-server:latest
     container_name: rust-server

@@ -9,13 +9,24 @@ alias = "build-containers"
 [tasks.build-server]
 workspace = false
 script = '''
-docker build --rm --target rust-server .
-docker tag $(docker image ls -q --filter=label=service=rust-server) scottliv/rust-server
+docker build --rm -t scottliv/rust-server --target rust-server .
+'''
+
+[tasks.build-image-collector]
+workspace = false
+script = '''
+docker build --rm -t scottliv/image_collector --target image_collector .
+'''
+
+[tasks.build-migration]
+workspace = false
+script = '''
+docker build --rm -t scottliv/migration --target migration .
 '''
 
 [tasks.build-containers]
 workspace = false
-dependencies = ["build-server"]
+dependencies = ["build-server", "build-image-collector", "build-migration"]
 
 [tasks.push-containers]
 workspace = false
@@ -27,4 +38,5 @@ echo "Not implemented yet."
 workspace = false
 script = '''
 docker image rm $(docker image ls -q --filter=label=service=rust-server)
+docker image rm $(docker image ls -q --filter=label=service=image_collector)
 '''

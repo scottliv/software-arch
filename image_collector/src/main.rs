@@ -43,7 +43,7 @@ async fn insert_image(db: DatabaseConnection, image: UnsplashImage) -> anyhow::R
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let db =
-        database::get_connection("postgres://postgres:postgres@localhost:5433/rust-software-arch")
+        database::get_connection("postgres://postgres:postgres@127.0.0.1:5433/rust-software-arch")
             .await?;
 
     let images = fetch_images().await?;
