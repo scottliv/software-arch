@@ -19,6 +19,7 @@ CMD ["/server"]
 LABEL service=rust-server
 
 FROM debian:stable-slim AS image_collector
+RUN apt-get update && apt install -y openssl
 WORKDIR /app
 COPY --from=builder /app/target/release/image_collector /image_collector
 ENV APP_ENVIRONMENT production

@@ -46,6 +46,14 @@ jobs:
           dockerfile: ./Dockerfile
           target: image_collector
           tags: scottliv/image_collector:latest
+      - name: Build and push Migration Docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: ./
+          push: true
+          dockerfile: ./Dockerfile
+          target: migration
+          tags: scottliv/migration:latest
   deploy:
     needs: [test, build]
     runs-on: ubuntu-latest
@@ -64,7 +72,8 @@ jobs:
       - name: Copy docker compose
         uses: appleboy/scp-action@v0.1.7
         with:
-          host: ubuntu@54.173.53.194
+          host: 54.173.53.194
+          username: ubuntu
           key: ${{ env.AWS_PRIVATE_KEY }}
           source: "docker-compose.yml"
           target: /
@@ -73,6 +82,7 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@54.173.53.194 'sudo docker pull scottliv/rust-server:latest'
           ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@54.173.53.194 'sudo docker pull scottliv/image_collector:latest'
+          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@54.173.53.194 'sudo docker pull scottliv/migration:latest'
       - name: Stop running container
         run: |
           ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@54.173.53.194 'sudo docker stop rust-server || true'

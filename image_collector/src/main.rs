@@ -1,6 +1,9 @@
+use std::time::Duration;
+
 use database::entity::inspiration_image::ActiveModel as InspirationImageActiveModel;
 use sea_orm::ActiveValue::Set;
 use sea_orm::{ActiveModelTrait, DatabaseConnection};
+use tokio_cron_scheduler::{Job, JobScheduler};
 
 #[derive(serde::Deserialize, Debug)]
 struct UnsplashImage {
@@ -27,7 +30,7 @@ async fn fetch_images() -> anyhow::Result<Vec<UnsplashImage>> {
     Ok(collection)
 }
 
-async fn insert_image(db: DatabaseConnection, image: UnsplashImage) -> anyhow::Result<()> {
+async fn insert_image(db: &DatabaseConnection, image: UnsplashImage) -> anyhow::Result<()> {
     let inspiration_image = InspirationImageActiveModel {
         source_id: Set(image.id),
         source_url: Set(image.urls.regular),
@@ -35,22 +38,37 @@ async fn insert_image(db: DatabaseConnection, image: UnsplashImage) -> anyhow::R
         ..Default::default()
     };
 
-    inspiration_image.insert(&db).await?;
+    inspiration_image.insert(db).await?;
     println!("Saved image");
     Ok(())
 }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let db =
-        database::get_connection("postgres://postgres:postgres@127.0.0.1:5433/rust-software-arch")
-            .await?;
+    let db_url = std::env::var("DATABASE_URL")
+        .unwrap_or("postgres://postgres:postgres@127.0.0.1:5433/rust-software-arch".to_string());
+    let db = std::sync::Arc::new(database::get_connection(&db_url).await?);
 
-    let images = fetch_images().await?;
-    for image in images {
-        insert_image(db.clone(), image).await?;
+    println!("Up and atom");
+    let mut sched = JobScheduler::new().await?;
+    let job = Job::new_async("0 8 * * * *", move |_uuid, mut _l| {
+        println!("getting images");
+        let db_clone = db.clone();
+        Box::pin(async move {
+            println!("Getting fresh images");
+            let images = fetch_images().await.unwrap();
+            for image in images {
+                insert_image(db_clone.as_ref(), image).await;
+            }
+        })
+    })?;
+    sched.add(job).await?;
+
+    sched.start().await?;
+
+    loop {
+        tokio::time::sleep(Duration::from_secs(100)).await;
     }
-
     Ok(())
 }
 

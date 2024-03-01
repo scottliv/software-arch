@@ -14,4 +14,3 @@ reqwest = { workspace = true }
 serde = { workspace = true }
 sea-orm = { workspace = true }
 testcontainers = { workspace = true }
-openssl = { workspace = true }
