@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 
 services:
   db:
@@ -33,6 +33,15 @@ services:
     restart: always
     environment:
       UNSPLASH_ACCESS_KEY: ${UNSPLASH_ACCESS_KEY}
+      DATABASE_URL: postgres://postgres:postgres@db:5432/rust-software-arch
+  image-generator:
+    depends_on: [db, migrate]
+    image: scottliv/image_generator:latest
+    container_name: image_generator
+    restart: always
+    environment:
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
       DATABASE_URL: postgres://postgres:postgres@db:5432/rust-software-arch
 
 volumes:

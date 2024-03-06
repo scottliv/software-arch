@@ -19,14 +19,20 @@ CMD ["/server"]
 LABEL service=rust-server
 
 FROM debian:stable-slim AS image_collector
-RUN apt-get update && apt install -y openssl
 WORKDIR /app
 COPY --from=builder /app/target/release/image_collector /image_collector
 ENV APP_ENVIRONMENT production
 CMD ["/image_collector"]
 LABEL service=image_collector
 
-FROM debian:stable-slim AS migration 
+FROM debian:stable-slim AS image_generator
+WORKDIR /app
+COPY --from=builder /app/target/release/image_generator /image_generator
+ENV APP_ENVIRONMENT production
+CMD ["/image_generator"]
+LABEL service=image_generator
+
+FROM debian:stable-slim AS migration
 WORKDIR /app
 COPY --from=builder /app/target/release/migration /migration
 CMD ["/migration"]

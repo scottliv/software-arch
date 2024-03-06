@@ -18,6 +18,12 @@ script = '''
 docker build --rm -t scottliv/image_collector --target image_collector .
 '''
 
+[tasks.build-image-generator]
+workspace = false
+script = '''
+docker build --rm -t scottliv/image_generator --target image_generator .
+'''
+
 [tasks.build-migration]
 workspace = false
 script = '''
@@ -26,7 +32,7 @@ docker build --rm -t scottliv/migration --target migration .
 
 [tasks.build-containers]
 workspace = false
-dependencies = ["build-server", "build-image-collector", "build-migration"]
+dependencies = ["build-server", "build-image-collector", "build-migration", "build-image-generator"]
 
 [tasks.push-containers]
 workspace = false

@@ -2,4 +2,5 @@
 
 pub mod prelude;
 
+pub mod generated_image;
 pub mod inspiration_image;

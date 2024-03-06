@@ -1,0 +1,19 @@
+[package]
+name = "image_generator"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+database = { path = "../database/" }
+anyhow = { workspace = true }
+tokio = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sea-orm = { workspace = true }
+rusoto_s3 = "0.48.0"
+rusoto_credential = "0.48.0"
+rusoto_core = "0.48.0"
+base64 = "0.13.0"

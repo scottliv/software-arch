@@ -9,6 +9,7 @@ use tokio_cron_scheduler::{Job, JobScheduler};
 struct UnsplashImage {
     id: String,
     urls: ImageUrls,
+    description: String,
 }
 
 #[derive(serde::Deserialize, Debug)]
@@ -34,7 +35,7 @@ async fn insert_image(db: &DatabaseConnection, image: UnsplashImage) -> anyhow::
     let inspiration_image = InspirationImageActiveModel {
         source_id: Set(image.id),
         source_url: Set(image.urls.regular),
-        description: Set(None),
+        description: Set(Some(image.description)),
         ..Default::default()
     };
 
@@ -50,15 +51,17 @@ async fn main() -> anyhow::Result<()> {
     let db = std::sync::Arc::new(database::get_connection(&db_url).await?);
 
     println!("Up and atom");
-    let mut sched = JobScheduler::new().await?;
-    let job = Job::new_async("0 8 * * * *", move |_uuid, mut _l| {
+    let sched = JobScheduler::new().await?;
+    let job = Job::new_async("1/30 * * * * *", move |_uuid, mut _l| {
         println!("getting images");
         let db_clone = db.clone();
         Box::pin(async move {
             println!("Getting fresh images");
-            let images = fetch_images().await.unwrap();
-            for image in images {
-                insert_image(db_clone.as_ref(), image).await;
+            let images = fetch_images().await;
+            if images.is_ok() {
+                for image in images.unwrap() {
+                    let _ = insert_image(db_clone.as_ref(), image).await;
+                }
             }
         })
     })?;
@@ -69,7 +72,6 @@ async fn main() -> anyhow::Result<()> {
     loop {
         tokio::time::sleep(Duration::from_secs(100)).await;
     }
-    Ok(())
 }
 
 #[cfg(test)]
