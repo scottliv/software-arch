@@ -31,8 +31,7 @@ async fn fetch_images() -> anyhow::Result<Vec<UnsplashImage>> {
 
     let response = client.get(url).send().await?;
     if response.status().is_success() {
-        let json_str = response.text().await?;
-        let collection: Vec<UnsplashImage> = serde_json::from_str(&json_str)?;
+        let collection: Vec<UnsplashImage> = response.json::<Vec<UnsplashImage>>().await?;
         event!(Level::INFO, "found new images");
         return Ok(collection);
     }

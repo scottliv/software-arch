@@ -16,4 +16,6 @@ sea-orm = { workspace = true }
 rusoto_s3 = "0.48.0"
 rusoto_credential = "0.48.0"
 rusoto_core = "0.48.0"
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
 base64 = "0.13.0"

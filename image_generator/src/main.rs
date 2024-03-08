@@ -1,3 +1,5 @@
+use std::fs::File;
+
 use anyhow::anyhow;
 use base64::decode;
 use database::entity::generated_image::{
@@ -9,6 +11,8 @@ use rusoto_credential::StaticProvider;
 use rusoto_s3::{PutObjectOutput, PutObjectRequest, S3Client, S3};
 use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
 use serde_json::json;
+use std::io::Read;
+use tracing::{event, instrument, Level};
 
 #[derive(serde::Deserialize)]
 struct GeneratedImageResponse {
@@ -18,10 +22,11 @@ struct GeneratedImageResponse {
 
 #[derive(serde::Deserialize)]
 struct GeneratedImage {
-    base64_json: String,
+    b64_json: String,
     revised_prompt: String,
 }
 
+#[instrument]
 async fn generate_image(
     db: &DatabaseConnection,
     inspiration_image: Model,
@@ -39,6 +44,7 @@ async fn generate_image(
       "response_format" : "b64_json"
     });
 
+    event!(Level::INFO, "Generating Image");
     let res = client
         .post(url)
         .header("Authorization", format!("Bearer {}", open_ai_access_key))
@@ -52,13 +58,14 @@ async fn generate_image(
         return Err(anyhow!("No image generated"));
     }
 
+    event!(Level::INFO, "Image Generated");
     // Only care about 1 image for now
     let image_url = match decode(
         &parsed_response
             .data
             .first()
             .expect("data is checked to not be empty")
-            .base64_json,
+            .b64_json,
     ) {
         Ok(image_data) => upload_to_s3(ByteStream::from(image_data), inspiration_image.id)
             .await?
@@ -77,11 +84,13 @@ async fn generate_image(
     Ok(img)
 }
 
+#[instrument]
 async fn upload_to_s3(image_data: ByteStream, image_id: i32) -> anyhow::Result<Option<String>> {
     let s3_access_key = std::env::var("S3_ACCESS_KEY").expect("S3 access key must be set");
     let s3_secret_key = std::env::var("S3_SECRET_KEY").expect("S3 secret key must be set");
     let region = Region::UsEast1;
 
+    event!(Level::INFO, "Authenticating with AWS");
     let credentials_provider = StaticProvider::new_minimal(s3_access_key, s3_secret_key);
     let dispatch_provider = rusoto_core::request::HttpClient::new()?;
     let s3_client = S3Client::new_with(dispatch_provider, credentials_provider, region);
@@ -95,27 +104,44 @@ async fn upload_to_s3(image_data: ByteStream, image_id: i32) -> anyhow::Result<O
         ..Default::default()
     };
 
+    event!(Level::INFO, "Uploading image to s3");
     let response: PutObjectOutput = s3_client.put_object(request).await?;
 
-    Ok(response.e_tag)
+    Ok(response.object_url)
 }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    tracing_subscriber::fmt().init();
     let db_url = std::env::var("DATABASE_URL")
         .unwrap_or("postgres://postgres:postgres@127.0.0.1:5433/rust-software-arch".to_string());
     let db = std::sync::Arc::new(database::get_connection(&db_url).await?);
 
     println!("db up!");
-    let test_image = InspirationImage::find()
-        .filter(inspiration_image::Column::Description.is_not_null())
-        .one(db.as_ref())
-        .await?;
+    // let test_image = InspirationImage::find()
+    //     .filter(inspiration_image::Column::Description.is_not_null())
+    //     .one(db.as_ref())
+    //     .await?;
 
-    if test_image.is_some() {
-        let img: GeneratedImageModel = generate_image(&db, test_image.unwrap()).await?;
+    // if test_image.is_some() {
+    //     let img = generate_image(&db, test_image.unwrap()).await;
 
-        println!("{}", img.source_url);
+    //     match img {
+    //         Ok(img) => println!("{}", img.source_url),
+    //         Err(e) => event!(Level::WARN, "Error generating image: {e}"),
+    //     }
+    // }
+    println!("{}", std::env::current_dir().unwrap().display());
+    let mut file = File::open("./test.png").expect("Failed to open file");
+
+    // Read the contents of the file into a Vec<u8>
+    let mut buffer = Vec::new();
+    file.read_to_end(&mut buffer).expect("Failed to read file");
+    let res = upload_to_s3(ByteStream::from(buffer), 212).await;
+
+    match res {
+        Ok(img) => println!("{}", img.expect("should have an image url")),
+        Err(e) => event!(Level::WARN, "Error generating image: {e}"),
     }
 
     Ok(())

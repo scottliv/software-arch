@@ -27,7 +27,8 @@ LABEL service=image_collector
 
 FROM debian:stable-slim AS image_generator
 WORKDIR /app
-RUN apt-get update && apt install -y openssl
+# RUN apt-get update && apt install -y openssl
+RUN apt-get update && apt install -y ca-certificates
 COPY --from=builder /app/target/release/image_generator /image_generator
 ENV APP_ENVIRONMENT production
 CMD ["/image_generator"]
