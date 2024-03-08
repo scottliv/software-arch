@@ -1,15 +1,18 @@
 use std::time::Duration;
 
+use anyhow::anyhow;
 use database::entity::inspiration_image::ActiveModel as InspirationImageActiveModel;
 use sea_orm::ActiveValue::Set;
 use sea_orm::{ActiveModelTrait, DatabaseConnection};
 use tokio_cron_scheduler::{Job, JobScheduler};
+use tracing::{event, instrument, Level};
 
 #[derive(serde::Deserialize, Debug)]
 struct UnsplashImage {
     id: String,
     urls: ImageUrls,
-    description: String,
+    description: Option<String>,
+    alt_description: Option<String>,
 }
 
 #[derive(serde::Deserialize, Debug)]
@@ -17,6 +20,7 @@ struct ImageUrls {
     regular: String,
 }
 
+#[instrument]
 async fn fetch_images() -> anyhow::Result<Vec<UnsplashImage>> {
     let client = reqwest::Client::new();
     let access_key = std::env::var("UNSPLASH_ACCESS_KEY").expect("Unsplash access key must be set");
@@ -25,17 +29,29 @@ async fn fetch_images() -> anyhow::Result<Vec<UnsplashImage>> {
         access_key
     );
 
-    let response = client.get(url).send().await.expect("Error fetching images");
-    let collection = response.json::<Vec<UnsplashImage>>().await?;
-
-    Ok(collection)
+    let response = client.get(url).send().await?;
+    if response.status().is_success() {
+        let json_str = response.text().await?;
+        let collection: Vec<UnsplashImage> = serde_json::from_str(&json_str)?;
+        event!(Level::INFO, "found new images");
+        return Ok(collection);
+    }
+    Err(anyhow!("woops bad result"))
 }
 
+#[instrument]
 async fn insert_image(db: &DatabaseConnection, image: UnsplashImage) -> anyhow::Result<()> {
+    if image.description.is_none() && image.alt_description.is_none() {
+        return Err(anyhow!("Image cannot be saved without a description"));
+    }
+    let description = match image.description {
+        Some(d) => d,
+        None => image.alt_description.expect("checked above for some"),
+    };
     let inspiration_image = InspirationImageActiveModel {
         source_id: Set(image.id),
         source_url: Set(image.urls.regular),
-        description: Set(Some(image.description)),
+        description: Set(Some(description)),
         ..Default::default()
     };
 
@@ -44,24 +60,29 @@ async fn insert_image(db: &DatabaseConnection, image: UnsplashImage) -> anyhow::
     Ok(())
 }
 
+#[instrument]
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    tracing_subscriber::fmt().init();
     let db_url = std::env::var("DATABASE_URL")
         .unwrap_or("postgres://postgres:postgres@127.0.0.1:5433/rust-software-arch".to_string());
     let db = std::sync::Arc::new(database::get_connection(&db_url).await?);
 
     println!("Up and atom");
     let sched = JobScheduler::new().await?;
-    let job = Job::new_async("1/30 * * * * *", move |_uuid, mut _l| {
-        println!("getting images");
+    let job = Job::new_async("0 8 * * * *", move |_uuid, mut _l| {
         let db_clone = db.clone();
         Box::pin(async move {
-            println!("Getting fresh images");
             let images = fetch_images().await;
-            if images.is_ok() {
-                for image in images.unwrap() {
-                    let _ = insert_image(db_clone.as_ref(), image).await;
+
+            match images {
+                Ok(images) => {
+                    for image in images {
+                        event!(Level::INFO, "Saving image to db");
+                        let _ = insert_image(db_clone.as_ref(), image).await;
+                    }
                 }
+                Err(e) => event!(Level::WARN, "Error loading images: {e}"),
             }
         })
     })?;

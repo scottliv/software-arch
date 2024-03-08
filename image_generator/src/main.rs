@@ -106,22 +106,17 @@ async fn main() -> anyhow::Result<()> {
         .unwrap_or("postgres://postgres:postgres@127.0.0.1:5433/rust-software-arch".to_string());
     let db = std::sync::Arc::new(database::get_connection(&db_url).await?);
 
+    println!("db up!");
     let test_image = InspirationImage::find()
         .filter(inspiration_image::Column::Description.is_not_null())
         .one(db.as_ref())
         .await?;
 
     if test_image.is_some() {
-        let d = test_image
-            .unwrap()
-            .description
-            .expect("there should be a description");
-        println!("{}", d);
+        let img: GeneratedImageModel = generate_image(&db, test_image.unwrap()).await?;
+
+        println!("{}", img.source_url);
     }
-
-    // let img: GeneratedImageModel = generate_image(&db, test_image).await?;
-
-    // println!("{}", img.source_url);
 
     Ok(())
 }
