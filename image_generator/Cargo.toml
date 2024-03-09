@@ -18,4 +18,5 @@ rusoto_credential = "0.48.0"
 rusoto_core = "0.48.0"
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
+uuid = "1.7.0"
 base64 = "0.13.0"

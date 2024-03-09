@@ -96,18 +96,46 @@ async fn main() -> anyhow::Result<()> {
 
 #[cfg(test)]
 mod tests {
+    use database::entity::inspiration_image::Entity as InspirationImage;
     use database::get_connection;
+    use migration::sea_orm::Database;
+    use migration::{Migrator, MigratorTrait};
+    use sea_orm::EntityTrait;
     use testcontainers::{clients, images};
+
+    use crate::insert_image;
+    use crate::ImageUrls;
+    use crate::UnsplashImage;
 
     #[tokio::test]
     async fn test_insert_image() {
         let docker = clients::Cli::default();
-        let database = images::postgres::Postgres::default();
-        let node = docker.run(database);
+        let db = images::postgres::Postgres::default();
+        let node = docker.run(db);
         let connection_string = &format!(
             "postgres://postgres:postgres@127.0.0.1:{}/postgres",
             node.get_host_port_ipv4(5432)
         );
         let database_connection = get_connection(connection_string).await.unwrap();
+
+        let migration_connection = Database::connect(connection_string).await.unwrap();
+        Migrator::up(&migration_connection, None).await.unwrap();
+
+        let image = UnsplashImage {
+            id: "test".to_string(),
+            urls: ImageUrls {
+                regular: "https://example.com".to_string(),
+            },
+            description: Some("this is an image".to_string()),
+            alt_description: None,
+        };
+
+        insert_image(&database_connection, image).await.unwrap();
+        let inserted_images = InspirationImage::find()
+            .all(&database_connection)
+            .await
+            .unwrap();
+
+        assert_eq!(inserted_images.len(), 1);
     }
 }
