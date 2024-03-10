@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 database = { path = "../database/" }
 anyhow = { workspace = true }
+pgmq = { workspace = true }
 tokio = { workspace = true }
 reqwest = { workspace = true }
 serde = { workspace = true }

@@ -4,6 +4,7 @@ use database::entity::generated_image::{
     ActiveModel as GeneratedImageActiveModel, Model as GeneratedImageModel,
 };
 use database::entity::inspiration_image::{self, Entity as InspirationImage, Model};
+use database::{get_queue_connection, GenerateImageMessage};
 use rusoto_core::{ByteStream, Region};
 use rusoto_credential::StaticProvider;
 use rusoto_s3::{PutObjectRequest, S3Client, S3};
@@ -142,21 +143,32 @@ async fn main() -> anyhow::Result<()> {
     let db_url = std::env::var("DATABASE_URL")
         .unwrap_or("postgres://postgres:postgres@127.0.0.1:5433/rust-software-arch".to_string());
     let db = std::sync::Arc::new(database::get_connection(&db_url).await?);
-
+    let message_queue_url =
+        std::env::var("MESSAGE_QUEUE_URL").expect("Message queue url must be set");
     println!("db up!");
 
-    // println!("{}", std::env::current_dir().unwrap().display());
-    // let mut file = File::open("./test.png").expect("Failed to open file");
+    let image_queue = get_queue_connection(message_queue_url, "generate_image".to_string()).await;
 
-    // Read the contents of the file into a Vec<u8>
-    // let mut buffer = Vec::new();
-    // file.read_to_end(&mut buffer).expect("Failed to read file");
-    // let res = upload_to_s3(ByteStream::from(buffer), 212).await;
+    loop {
+        let received_message = image_queue
+            .queue
+            .read::<GenerateImageMessage>(&image_queue.queue_name, Some(30))
+            .await;
 
-    // match res {
-    //     Ok(img) => println!("{}", img.expect("should have an image url")),
-    //     Err(e) => event!(Level::WARN, "Error generating image: {e}"),
-    // };
-
-    Ok(())
+        match received_message {
+            Ok(message) => match message {
+                Some(message) => {
+                    match handle_message(message.message.inspiration_image_id, &db).await {
+                        Ok(_) => event!(Level::INFO, "Image successfully generated"),
+                        Err(e) => event!(Level::INFO, "{e}"),
+                    }
+                }
+                None => {
+                    event!(Level::INFO, "Queue is empty, sleeping for a few");
+                    tokio::time::sleep(std::time::Duration::from_secs(100)).await;
+                }
+            },
+            Err(e) => event!(Level::INFO, "Error reading from message queue: {e}"),
+        }
+    }
 }

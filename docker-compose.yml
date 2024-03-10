@@ -12,6 +12,13 @@ services:
       - "5433:5432"
     volumes:
       - postgres_dev:/var/lib/postgresql/data
+  message_queue:
+    container_name: image-generation-queue
+    image: quay.io/tembo/pgmq-pg:latest
+    environment:
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5431:5432"
   migrate:
     depends_on: [db]
     container_name: migration
@@ -27,15 +34,16 @@ services:
     environment:
       APP_ENVIRONMENT: production
   image-collector:
-    depends_on: [db, migrate]
+    depends_on: [db, migrate, message_queue]
     image: scottliv/image_collector:latest
     container_name: image_collector
     restart: always
     environment:
       UNSPLASH_ACCESS_KEY: ${UNSPLASH_ACCESS_KEY}
       DATABASE_URL: postgres://postgres:postgres@db:5432/rust-software-arch
+      MESSAGE_QUEUE_URL: postgres://postgres:postgres@message_queue:5432
   image-generator:
-    depends_on: [db, migrate]
+    depends_on: [db, migrate, message_queue]
     image: scottliv/image_generator:latest
     container_name: image_generator
     restart: always
@@ -44,6 +52,7 @@ services:
       S3_SECRET_KEY: ${S3_SECRET_KEY}
       OPEN_AI_ACCESS_KEY: ${OPEN_AI_ACCESS_KEY}
       DATABASE_URL: postgres://postgres:postgres@db:5432/rust-software-arch
+      MESSAGE_QUEUE_URL: postgres://postgres:postgres@message_queue:5432
     volumes:
       - ./test.png:/app/test.png
 

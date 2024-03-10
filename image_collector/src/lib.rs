@@ -1,5 +1,7 @@
 use anyhow::anyhow;
-use database::entity::inspiration_image::ActiveModel as InspirationImageActiveModel;
+use database::entity::inspiration_image::{
+    ActiveModel as InspirationImageActiveModel, Model as InspirationImageModel,
+};
 use reqwest::{Client, Response};
 use sea_orm::ActiveValue::Set;
 use sea_orm::{ActiveModelTrait, DatabaseConnection};
@@ -51,7 +53,10 @@ pub async fn fetch_images(client: ImageClient) -> anyhow::Result<Vec<UnsplashIma
 }
 
 #[instrument]
-pub async fn insert_image(db: &DatabaseConnection, image: UnsplashImage) -> anyhow::Result<()> {
+pub async fn insert_image(
+    db: &DatabaseConnection,
+    image: UnsplashImage,
+) -> anyhow::Result<InspirationImageModel> {
     if image.description.is_none() && image.alt_description.is_none() {
         return Err(anyhow!("Image cannot be saved without a description"));
     }
@@ -66,7 +71,7 @@ pub async fn insert_image(db: &DatabaseConnection, image: UnsplashImage) -> anyh
         ..Default::default()
     };
 
-    inspiration_image.insert(db).await?;
+    let result = inspiration_image.insert(db).await?;
     println!("Saved image");
-    Ok(())
+    Ok(result)
 }
