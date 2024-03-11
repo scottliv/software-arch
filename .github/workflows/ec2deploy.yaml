@@ -97,4 +97,4 @@ jobs:
           ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@54.173.53.194 'sudo docker-compose down'
       - name: Run new container
         run: |
-          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@54.173.53.194 'sudo docker-compose up'
+          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@54.173.53.194 'sudo docker-compose up -d'
