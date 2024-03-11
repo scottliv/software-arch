@@ -46,6 +46,14 @@ jobs:
           dockerfile: ./Dockerfile
           target: image_collector
           tags: scottliv/image_collector:latest
+      - name: Build and push Image Generator Docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: ./
+          push: true
+          dockerfile: ./Dockerfile
+          target: image_generator
+          tags: scottliv/image_generator:latest
       - name: Build and push Migration Docker image
         uses: docker/build-push-action@v2
         with:
@@ -76,7 +84,7 @@ jobs:
           username: ubuntu
           key: ${{ env.AWS_PRIVATE_KEY }}
           source: "docker-compose.yml"
-          target: /
+          target: "/home/ubuntu"
           overwrite: true
       - name: Pull Docker image
         run: |
