@@ -95,7 +95,6 @@ jobs:
       - name: Stop running container
         run: |
           ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@54.173.53.194 'sudo docker-compose down'
-          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@54.173.53.194 'sudo docker rm rust- true'
       - name: Run new container
         run: |
           ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@54.173.53.194 'sudo docker-compose up'
