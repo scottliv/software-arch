@@ -90,6 +90,7 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@54.173.53.194 'sudo docker pull scottliv/rust-server:latest'
           ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@54.173.53.194 'sudo docker pull scottliv/image_collector:latest'
+          ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@54.173.53.194 'sudo docker pull scottliv/image_generator:latest'
           ssh -o StrictHostKeyChecking=no -i key.pem ubuntu@54.173.53.194 'sudo docker pull scottliv/migration:latest'
       - name: Stop running container
         run: |
