@@ -1,8 +1,10 @@
 use std::net::TcpListener;
 
 use actix_web::{
-    dev::Server, http::header::ContentType, web, App, HttpResponse, HttpServer, Responder,
+    dev::Server, http::header::ContentType, web, App, HttpRequest, HttpResponse, HttpServer,
+    Responder,
 };
+use actix_web_prom::PrometheusMetricsBuilder;
 
 #[derive(serde::Deserialize)]
 struct FormData {
@@ -12,6 +14,10 @@ struct FormData {
 async fn echo_user_input(form: web::Form<FormData>) -> impl Responder {
     let input = &form.input;
     format!("You entered: {input}")
+}
+
+pub async fn health_check(_req: HttpRequest) -> HttpResponse {
+    HttpResponse::Ok().finish()
 }
 
 async fn index() -> impl Responder {
@@ -45,9 +51,16 @@ impl Application {
     }
 
     pub fn build_server(listener: TcpListener) -> Result<Server, std::io::Error> {
-        let server = HttpServer::new(|| {
+        let prometheus = PrometheusMetricsBuilder::new("api")
+            .endpoint("/metrics")
+            .build()
+            .unwrap();
+
+        let server = HttpServer::new(move || {
             App::new()
+                .wrap(prometheus.clone())
                 .route("/echo_user_input", web::post().to(echo_user_input))
+                .route("/health_check", web::get().to(health_check))
                 .route("/", web::get().to(index))
         })
         .listen(listener)?

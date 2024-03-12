@@ -7,6 +7,8 @@ edition = "2021"
 
 [dependencies]
 actix-web = "4"
+prometheus = "0.13.3"
+actix-web-prom = "0.6.0"
 anyhow = { workspace = true }
 serde = { workspace = true }
 tokio = { workspace = true }

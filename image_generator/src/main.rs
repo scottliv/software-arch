@@ -159,7 +159,13 @@ async fn main() -> anyhow::Result<()> {
             Ok(message) => match message {
                 Some(message) => {
                     match handle_message(message.message.inspiration_image_id, &db).await {
-                        Ok(_) => event!(Level::INFO, "Image successfully generated"),
+                        Ok(_) => {
+                            event!(Level::INFO, "Image successfully generated");
+                            let _ = image_queue
+                                .queue
+                                .archive(&image_queue.queue_name, message.msg_id)
+                                .await;
+                        }
                         Err(e) => event!(Level::INFO, "{e}"),
                     }
                 }
