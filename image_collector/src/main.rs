@@ -26,7 +26,7 @@ async fn main() -> anyhow::Result<()> {
 
     println!("Up and atom");
     let sched = JobScheduler::new().await?;
-    let job = Job::new_async("0 8 * * * *", move |_uuid, mut _l| {
+    let job = Job::new_async("0 0 8 * * *", move |_uuid, mut _l| {
         let db_clone = db.clone();
         let client_clone = image_client.clone();
         let queue_clone = image_queue.clone();
