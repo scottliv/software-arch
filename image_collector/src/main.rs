@@ -15,7 +15,7 @@ async fn main() -> anyhow::Result<()> {
     let db = std::sync::Arc::new(database::get_connection(&db_url).await?);
     let access_key = std::env::var("UNSPLASH_ACCESS_KEY").expect("Unsplash access key must be set");
     let url = format!(
-        "https://api.unsplash.com/photos?order_by=popular&client_id={}",
+        "https://api.unsplash.com/photos?order_by=latest&client_id={}",
         access_key
     );
     let image_client = ImageClient::new(url);
