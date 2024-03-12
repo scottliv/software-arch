@@ -152,7 +152,7 @@ async fn main() -> anyhow::Result<()> {
     loop {
         let received_message = image_queue
             .queue
-            .read::<GenerateImageMessage>(&image_queue.queue_name, Some(30))
+            .read::<GenerateImageMessage>(&image_queue.queue_name, Some(60))
             .await;
 
         match received_message {
