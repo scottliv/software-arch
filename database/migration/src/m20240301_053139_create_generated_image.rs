@@ -41,7 +41,7 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(DeriveIden)]
-enum GeneratedImage {
+pub enum GeneratedImage {
     Table,
     Id,
     SourceUrl,

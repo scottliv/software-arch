@@ -3,12 +3,12 @@ use base64::decode;
 use database::entity::generated_image::{
     ActiveModel as GeneratedImageActiveModel, Model as GeneratedImageModel,
 };
-use database::entity::inspiration_image::{self, Entity as InspirationImage, Model};
+use database::entity::inspiration_image::{Entity as InspirationImage, Model};
 use database::{get_queue_connection, GenerateImageMessage};
 use rusoto_core::{ByteStream, Region};
 use rusoto_credential::StaticProvider;
 use rusoto_s3::{PutObjectRequest, S3Client, S3};
-use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
+use sea_orm::{ActiveModelTrait, DatabaseConnection, EntityTrait, Set};
 use serde_json::json;
 use tracing::{event, instrument, Level};
 
@@ -61,10 +61,14 @@ async fn save_image(
     db: &DatabaseConnection,
     image_url: String,
     inspiration_image_id: i32,
+    prompt: String,
+    revised_prompt: String,
 ) -> anyhow::Result<GeneratedImageModel> {
     let generated_image = GeneratedImageActiveModel {
         inspiration_image_id: Set(inspiration_image_id),
         source_url: Set(image_url),
+        prompt: Set(prompt),
+        revised_prompt: Set(revised_prompt),
         ..Default::default()
     };
 
@@ -73,33 +77,45 @@ async fn save_image(
     Ok(img)
 }
 
-async fn parse_image_response(response: GeneratedImageResponse) -> anyhow::Result<ByteStream> {
-    match decode(
-        &response
-            .data
-            .first()
-            .expect("data is checked to not be empty")
-            .b64_json,
-    ) {
-        Ok(image_data) => Ok(ByteStream::from(image_data)),
+async fn parse_image_response(
+    response: GeneratedImageResponse,
+) -> anyhow::Result<(ByteStream, String)> {
+    if response.data.first().is_some() {
+        let data = response.data.first().expect("should be some");
+        match decode(&data.b64_json) {
+            Ok(image_data) => {
+                return Ok((ByteStream::from(image_data), data.revised_prompt.clone()))
+            }
 
-        Err(e) => Err(anyhow!(e)),
-    }
+            Err(e) => return Err(anyhow!(e)),
+        }
+    };
+
+    Err(anyhow!("No image data"))
 }
 
 #[instrument]
 async fn handle_message(inspiration_image_id: i32, db: &DatabaseConnection) -> anyhow::Result<()> {
-    let inspiration_image = InspirationImage::find()
-        .filter(inspiration_image::Column::Description.is_not_null())
+    let inspiration_image = InspirationImage::find_by_id(inspiration_image_id)
         .one(db)
         .await?;
 
     if inspiration_image.is_some() {
-        let image_response = generate_image(inspiration_image.unwrap()).await?;
-        let image_data = parse_image_response(image_response).await?;
+        let inspiration_image_model = inspiration_image.unwrap();
+        let image_response = generate_image(inspiration_image_model.clone()).await?;
+        let (image_data, revised_prompt) = parse_image_response(image_response).await?;
         let image_url = upload_to_s3(image_data, inspiration_image_id).await?;
 
-        save_image(db, image_url, inspiration_image_id).await?;
+        save_image(
+            db,
+            image_url,
+            inspiration_image_id,
+            inspiration_image_model
+                .description
+                .unwrap_or("".to_string()),
+            revised_prompt,
+        )
+        .await?;
         event!(Level::INFO, "Saved new generated image");
     }
 

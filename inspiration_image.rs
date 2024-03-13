@@ -3,14 +3,13 @@
 use sea_orm::entity::prelude::*;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq)]
-#[sea_orm(table_name = "generated_image")]
+#[sea_orm(table_name = "inspiration_image")]
 pub struct Model {
     #[sea_orm(primary_key)]
     pub id: i32,
     pub source_url: String,
-    pub inspiration_image_id: i32,
-    pub prompt: String,
-    pub revised_prompt: String,
+    pub source_id: String,
+    pub description: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
