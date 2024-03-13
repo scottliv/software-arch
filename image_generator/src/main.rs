@@ -134,7 +134,7 @@ async fn upload_to_s3(image_data: ByteStream, image_id: i32) -> anyhow::Result<S
     let dispatch_provider = rusoto_core::request::HttpClient::new()?;
     let s3_client = S3Client::new_with(dispatch_provider, credentials_provider, region);
     let id = uuid::Uuid::new_v4();
-    let key = format!("{}:{}", image_id, id);
+    let key = format!("{}_{}", image_id, id);
 
     let request = PutObjectRequest {
         bucket: bucket_name.to_owned(),
