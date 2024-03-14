@@ -3,13 +3,21 @@ name = "server"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+path = "src/lib.rs"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 actix-web = "4"
+database = { path = "../database" }
 prometheus = "0.13.3"
 actix-web-prom = "0.6.0"
 anyhow = { workspace = true }
 serde = { workspace = true }
+sea-orm = { workspace = true }
 tokio = { workspace = true }
 reqwest = { workspace = true }
+askama_actix = "0.14.0"
+askama = "0.12.1"
+testcontainers = { workspace = true }

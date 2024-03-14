@@ -1,10 +1,10 @@
 use std::net::TcpListener;
 
-use actix_web::{
-    dev::Server, http::header::ContentType, web, App, HttpRequest, HttpResponse, HttpServer,
-    Responder,
-};
+use actix_web::{dev::Server, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use actix_web_prom::PrometheusMetricsBuilder;
+use sea_orm::DatabaseConnection;
+
+use crate::template::IndexTemplate;
 
 #[derive(serde::Deserialize)]
 struct FormData {
@@ -21,15 +21,7 @@ pub async fn health_check(_req: HttpRequest) -> HttpResponse {
 }
 
 async fn index() -> impl Responder {
-    let form = format!(
-        "<form action=\"/echo_user_input\" method=\"POST\">
-         <input name=\"input\">
-         <input type=\"submit\" value=\"Submit!\">
-     </form>"
-    );
-    HttpResponse::Ok()
-        .content_type(ContentType::html())
-        .body(form)
+    IndexTemplate {}
 }
 
 pub struct Application {
@@ -38,10 +30,13 @@ pub struct Application {
 }
 
 impl Application {
-    pub async fn build(port: u16) -> Result<Self, anyhow::Error> {
+    pub async fn build(
+        port: u16,
+        db_connection: DatabaseConnection,
+    ) -> Result<Self, anyhow::Error> {
         let address = format!("{}:{}", Application::address(), port);
         let listener = TcpListener::bind(address)?;
-        let server = Application::build_server(listener)?;
+        let server = Application::build_server(listener, db_connection)?;
 
         Ok(Self { port, server })
     }
@@ -50,7 +45,10 @@ impl Application {
         self.server.await
     }
 
-    pub fn build_server(listener: TcpListener) -> Result<Server, std::io::Error> {
+    pub fn build_server(
+        listener: TcpListener,
+        db_connection: DatabaseConnection,
+    ) -> Result<Server, std::io::Error> {
         let prometheus = PrometheusMetricsBuilder::new("api")
             .endpoint("/metrics")
             .build()
@@ -62,6 +60,7 @@ impl Application {
                 .route("/echo_user_input", web::post().to(echo_user_input))
                 .route("/health_check", web::get().to(health_check))
                 .route("/", web::get().to(index))
+                .app_data(web::Data::new(db_connection.clone()))
         })
         .listen(listener)?
         .run();

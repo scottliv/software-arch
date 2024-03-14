@@ -1,4 +1,6 @@
+use database::get_connection;
 use server::startup::Application;
+use testcontainers::{clients, images};
 
 struct TestApp {
     address: String,
@@ -10,7 +12,15 @@ impl TestApp {
     }
 
     pub async fn build_test_app() -> TestApp {
-        let app = Application::build(3232)
+        let docker = clients::Cli::default();
+        let database = images::postgres::Postgres::default();
+        let node = docker.run(database);
+        let connection_string = &format!(
+            "postgres://postgres:postgres@127.0.0.1:{}/postgres",
+            node.get_host_port_ipv4(5432)
+        );
+        let database_connection = get_connection(connection_string).await.unwrap();
+        let app = Application::build(3232, database_connection)
             .await
             .expect("Failed to build test app");
         let _ = tokio::spawn(app.run());
