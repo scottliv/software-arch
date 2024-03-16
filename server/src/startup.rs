@@ -4,7 +4,10 @@ use actix_web::{dev::Server, web, App, HttpRequest, HttpResponse, HttpServer, Re
 use actix_web_prom::PrometheusMetricsBuilder;
 use sea_orm::DatabaseConnection;
 
-use crate::template::IndexTemplate;
+use crate::{
+    api::{get_first_image, get_image_by_id, get_next_image},
+    template::IndexTemplate,
+};
 
 #[derive(serde::Deserialize)]
 struct FormData {
@@ -60,6 +63,9 @@ impl Application {
                 .route("/echo_user_input", web::post().to(echo_user_input))
                 .route("/health_check", web::get().to(health_check))
                 .route("/", web::get().to(index))
+                .service(get_first_image)
+                .service(get_image_by_id)
+                .service(get_next_image)
                 .app_data(web::Data::new(db_connection.clone()))
         })
         .listen(listener)?

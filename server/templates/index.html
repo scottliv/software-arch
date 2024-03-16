@@ -3,5 +3,13 @@
 {% block title %}Hello!{% endblock %}
 
 {% block content%}
-<h1>Sup boi!</h1>
+<div
+    id="image-container"
+    hx-get="/generated_images/first"
+    hx-target="this"
+    hx-trigger="load"
+    hx-swap="outerHTML"
+>
+    Loading...
+</div>
 {% endblock %}

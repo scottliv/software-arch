@@ -50,6 +50,7 @@ services:
       - "80:8080"
     environment:
       APP_ENVIRONMENT: production
+      DATABASE_URL: postgres://postgres:postgres@db:5432/rust-software-arch
   image-collector:
     depends_on: [db, migrate, message_queue]
     image: scottliv/image_collector:latest
