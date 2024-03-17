@@ -1,0 +1,14 @@
+<section id="image-gallery">
+    <img src="{{inspiration_image.source_url}}" />
+    <img src="{{generated_image.source_url}}" />
+
+    <button
+        id="image-container"
+        hx-get="/images/{{generated_image.id}}/next"
+        hx-target="#image-gallery"
+        hx-trigger="click"
+        hx-swap="outerHTML"
+    >
+        next
+    </button>
+</section>
