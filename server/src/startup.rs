@@ -5,7 +5,7 @@ use actix_web_prom::PrometheusMetricsBuilder;
 use sea_orm::DatabaseConnection;
 
 use crate::{
-    api::{get_first_image, get_image_by_id, get_next_image},
+    api::{get_first_image, get_image_by_id, get_next_image, get_previous_image},
     template::IndexTemplate,
 };
 
@@ -66,6 +66,7 @@ impl Application {
                 .service(get_first_image)
                 .service(get_image_by_id)
                 .service(get_next_image)
+                .service(get_previous_image)
                 .app_data(web::Data::new(db_connection.clone()))
         })
         .listen(listener)?

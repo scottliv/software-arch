@@ -1,14 +1,37 @@
 <section id="image-gallery">
-    <img src="{{inspiration_image.source_url}}" />
-    <img src="{{generated_image.source_url}}" />
+    <div class="grid">
+        <div>
+            <img
+                style="object-fit: cover; height: 100%"
+                src="{{inspiration_image.source_url}}"
+            />
+        </div>
+        <div>
+            <img
+                style="object-fit: cover; height: 100%"
+                src="{{generated_image.source_url}}"
+            />
+        </div>
+    </div>
 
-    <button
-        id="image-container"
-        hx-get="/images/{{generated_image.id}}/next"
-        hx-target="#image-gallery"
-        hx-trigger="click"
-        hx-swap="outerHTML"
-    >
-        next
-    </button>
+    <div class="grid">
+        <button
+            id="image-container"
+            hx-get="/images/{{generated_image.id}}/previous"
+            hx-target="#image-gallery"
+            hx-trigger="click"
+            hx-swap="outerHTML"
+        >
+            previous
+        </button>
+        <button
+            id="image-container"
+            hx-get="/images/{{generated_image.id}}/next"
+            hx-target="#image-gallery"
+            hx-trigger="click"
+            hx-swap="outerHTML"
+        >
+            next
+        </button>
+    </div>
 </section>

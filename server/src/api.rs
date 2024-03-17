@@ -63,6 +63,36 @@ pub async fn get_next_image(
     })
 }
 
+#[get("/images/{id}/previous")]
+pub async fn get_previous_image(
+    db: web::Data<DatabaseConnection>,
+    id: web::Path<String>,
+) -> askama::Result<GeneratedImageTemplate, InternalError<String>> {
+    let id = id.parse::<i32>();
+    if id.is_err() {
+        return Err(InternalError::new(
+            "Invalid ID".to_string(),
+            actix_web::http::StatusCode::from_u16(400).unwrap(),
+        ));
+    }
+
+    let image = GeneratedImage::find()
+        .from_raw_sql(Statement::from_sql_and_values(
+            DbBackend::Postgres,
+            r#"SELECT * FROM generated_image WHERE id < $1 ORDER BY id DESC LIMIT 1"#,
+            [id.unwrap().into()],
+        ))
+        .one(db.as_ref())
+        .await;
+    let (generated_image, inspiration_image) =
+        get_generated_and_inspiration_image(image, db.as_ref()).await?;
+
+    Ok(GeneratedImageTemplate {
+        generated_image,
+        inspiration_image,
+    })
+}
+
 #[get("/images/first")]
 pub async fn get_first_image(
     db: web::Data<DatabaseConnection>,

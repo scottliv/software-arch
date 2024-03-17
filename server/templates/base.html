@@ -6,12 +6,17 @@
             integrity="sha384-FhXw7b6AlE/jyjlZH5iHa/tTe9EpJ1Y55RjcgPbjeWMskSxZt1v9qkxLJWNJaGni"
             crossorigin="anonymous"
         ></script>
-        <link href="/assets/main.css" rel="stylesheet" />
+        <link
+            rel="stylesheet"
+            href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
+        />
         <title>{% block title %}{{ title }}{% endblock %}</title>
 
         {% block head %}{% endblock %}
     </head>
     <body>
-        <div id="content">{% block content %}{% endblock %}</div>
+        <main class="container">
+            <div id="content">{% block content %}{% endblock %}</div>
+        </main>
     </body>
 </html>
